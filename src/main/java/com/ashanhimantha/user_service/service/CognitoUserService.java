@@ -185,6 +185,11 @@ public class CognitoUserService {
                     .map(GroupType::groupName)
                     .toList();
 
+            // Check if user has SuperAdmins role - prevent role changes for SuperAdmins
+            if (currentRoles.contains("SuperAdmins")) {
+                throw new java.lang.UnsupportedOperationException("Cannot modify roles for SuperAdmins. Please use the admin console to change admin roles.");
+            }
+
             // 2. Determine which roles to add
             List<String> rolesToAdd = newRoles.stream()
                     .filter(newRole -> !currentRoles.contains(newRole))
