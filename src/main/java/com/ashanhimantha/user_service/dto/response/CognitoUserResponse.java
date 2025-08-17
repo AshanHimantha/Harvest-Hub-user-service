@@ -12,7 +12,6 @@ public class CognitoUserResponse {
     private String id;
     private String username;
     private String email;
-    private String name;
     private String firstName;
     private String lastName;
     private String phone;
@@ -36,8 +35,9 @@ public class CognitoUserResponse {
         user.setPhone(attributes.get("phone_number"));
         user.setEmailVerified("true".equals(attributes.get("email_verified")));
         user.setUserGroups(userGroups);
-        user.setName(attributes.get("name"));
-
+        user.setCreatedDate(attributes.get("created_date"));
+        user.setLastModifiedDate(attributes.get("last_modified_date"));
+        user.setStatus(attributes.get("status"));
 
         return user;
     }
@@ -68,17 +68,8 @@ public class CognitoUserResponse {
         user.setEmailVerified("true".equals(attributeMap.get("email_verified")));
         user.setUserGroups(userGroups);
 
-        // Set name field (combination of first and last name or fallback to email)
-        if (user.getFirstName() != null && user.getLastName() != null) {
-            user.setName(user.getFirstName() + " " + user.getLastName());
-        } else if (user.getFirstName() != null) {
-            user.setName(user.getFirstName());
-        } else if (user.getLastName() != null) {
-            user.setName(user.getLastName());
-        } else {
-            user.setName(user.getEmail());
-        }
 
         return user;
     }
 }
+

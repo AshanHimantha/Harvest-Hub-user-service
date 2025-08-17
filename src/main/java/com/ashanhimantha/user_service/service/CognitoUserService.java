@@ -13,17 +13,15 @@ import java.util.stream.Collectors;
 @Service
 public class CognitoUserService {
 
-    @Value("${aws.cognito.userPoolId:ap-southeast-2_Ap8DgKVbB}")
-    private String userPoolId;
-
-    @Value("${aws.region:ap-southeast-2}")
-    private String awsRegion;
-
+    private final String userPoolId;
     private final CognitoIdentityProviderClient cognitoClient;
 
-    public CognitoUserService() {
+    public CognitoUserService(
+            @Value("${aws.cognito.userPoolId}") String userPoolId,
+            @Value("${aws.region}") String awsRegion) {
+        this.userPoolId = userPoolId;
         this.cognitoClient = CognitoIdentityProviderClient.builder()
-                .region(Region.of("ap-southeast-2"))
+                .region(Region.of(awsRegion))
                 .build();
     }
 
@@ -36,11 +34,23 @@ public class CognitoUserService {
 
             AdminGetUserResponse response = cognitoClient.adminGetUser(request);
 
-            return response.userAttributes().stream()
+            // Get user attributes
+            Map<String, String> attributes = response.userAttributes().stream()
                     .collect(Collectors.toMap(
                             AttributeType::name,
                             AttributeType::value
                     ));
+
+            // Add metadata fields that are not in user attributes
+            attributes.put("status", response.userStatusAsString());
+            if (response.userCreateDate() != null) {
+                attributes.put("created_date", response.userCreateDate().toString());
+            }
+            if (response.userLastModifiedDate() != null) {
+                attributes.put("last_modified_date", response.userLastModifiedDate().toString());
+            }
+
+            return attributes;
         } catch (CognitoIdentityProviderException e) {
             throw new RuntimeException("Failed to fetch user from Cognito: " + e.getMessage(), e);
         }
