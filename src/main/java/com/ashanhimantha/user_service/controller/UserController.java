@@ -1,9 +1,12 @@
 package com.ashanhimantha.user_service.controller;
 
 
+import com.ashanhimantha.user_service.dto.request.AddressRequest;
 import com.ashanhimantha.user_service.dto.response.ApiResponse;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
+import com.ashanhimantha.user_service.entity.Address;
 import com.ashanhimantha.user_service.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -93,6 +97,62 @@ public class UserController {
             }
 
             return ResponseEntity.ok(fallbackResponse);
+        }
+    }
+
+
+    @PostMapping("/me/addresses")
+    public ResponseEntity<ApiResponse<Address>> addMyAddress(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AddressRequest addressRequest) {
+        String userId = jwt.getSubject(); // Get the user ID from the token
+
+        try {
+            Address savedAddress = userService.addAddressForUser(userId, addressRequest);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Address added successfully", savedAddress));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to add address: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get all addresses for the current user.
+     */
+    @GetMapping("/me/addresses")
+    public ResponseEntity<ApiResponse<List<Address>>> getMyAddresses(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject(); // Get the user ID from the token
+
+        try {
+            List<Address> addresses = userService.getAddressesForUser(userId);
+            return ResponseEntity.ok(ApiResponse.success("Addresses retrieved successfully", addresses));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to retrieve addresses: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/me/addresses/{addressId}")
+    public ResponseEntity<ApiResponse<Address>> updateMyAddress(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long addressId,
+            @Valid @RequestBody AddressRequest addressRequest) {
+
+        String userId = jwt.getSubject(); // Get the user ID from the token
+
+        try {
+            Optional<Address> updatedAddressOptional = userService.updateUserAddress(userId, addressId, addressRequest);
+
+            // Check if the address was found and updated
+            if (updatedAddressOptional.isPresent()) {
+                return ResponseEntity.ok(ApiResponse.success("Address updated successfully", updatedAddressOptional.get()));
+            } else {
+                // If the Optional is empty, it means the address was not found or the user doesn't own it.
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Address not found or you do not have permission to update it."));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to update address: " + e.getMessage()));
         }
     }
 
