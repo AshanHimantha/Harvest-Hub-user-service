@@ -1,5 +1,6 @@
 package com.ashanhimantha.user_service.service.impl;
 
+import com.ashanhimantha.user_service.dto.request.CreateAdminUserRequest;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
 import com.ashanhimantha.user_service.service.CognitoUserService;
 import com.ashanhimantha.user_service.service.UserService;
@@ -40,5 +41,20 @@ public class UserServiceImpl implements UserService {
         return cognitoUserService.searchUsersByEmail(email).stream()
                 .map(CognitoUserResponse::fromUserType)
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public CognitoUserResponse createCognitoAdminUser(CreateAdminUserRequest request) {
+        return cognitoUserService.createAdminUser(request);
+    }
+
+    @Override
+    public void syncCognitoUserRoles(String username, List<String> newRoles) {
+        cognitoUserService.syncUserRoles(username, newRoles);
+    }
+
+    @Override
+    public void updateCognitoUserStatus(String username, boolean enable) {
+        cognitoUserService.updateUserStatus(username, enable);
     }
 }
