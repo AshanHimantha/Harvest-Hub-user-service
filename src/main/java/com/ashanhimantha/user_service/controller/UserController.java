@@ -1,9 +1,11 @@
 package com.ashanhimantha.user_service.controller;
 
 
+import com.ashanhimantha.user_service.dto.response.ApiResponse;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
 import com.ashanhimantha.user_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,6 +23,15 @@ public class UserController {
     @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
+    }
+
+    /**
+     * Base users endpoint - returns 404 with specific error message
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<Object>> getUsers() {
+        ApiResponse<Object> response = ApiResponse.error("Internal server error: No static resource api/v1/users.");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     /**

@@ -27,7 +27,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex, WebRequest request) {
-        ApiResponse<Object> response = ApiResponse.error("Internal server error");
+        // Temporarily show actual error details for debugging
+        ApiResponse<Object> response = ApiResponse.error("Internal server error: " + ex.getMessage());
+        ex.printStackTrace(); // This will show the full stack trace in logs
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

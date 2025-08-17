@@ -5,6 +5,7 @@ import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
 import com.ashanhimantha.user_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasAuthority('SuperAdmins')")
 public class AdminUserController {
 
     private final UserService userService;
