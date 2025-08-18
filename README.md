@@ -92,3 +92,7 @@ java -jar target/user-service-0.0.1-SNAPSHOT.jar
 
 - **Postman:** [Harvest Hub](https://www.postman.com/xd5555-3122/workspace/harvest-hub-apis)
 
+## 7. AWS Configs
+
+- **AWS:** [Documentation](https://github.com/AshanHimantha/Harvest-Hub-user-service/blob/master/AWS_Configs.md)
+
