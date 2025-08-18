@@ -36,7 +36,7 @@ This service is built with **Java 17**, **Spring Boot 3.5+**, and **Maven**.
 - **Identity Provider:** [AWS Cognito](https://aws.amazon.com/cognito/)
 - **Database:** [PostgreSQL](https://www.postgresql.org/)
 - **Data Access:** [Spring Data JPA / Hibernate](https://spring.io/projects/spring-data-jpa)
-- **API Documentation:** [SpringDoc OpenAPI (Swagger UI)](https://springdoc.org/)
+- **API Documentation:** [(Postman)](https://www.postman.com/)
 
 ## 4. Setup and Configuration
 
