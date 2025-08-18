@@ -15,4 +15,6 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     List<Address> findByUserId(String userId);
 
     Optional<Address> findByIdAndUserId(Long id, String userId);
+
+    void deleteByIdAndUserId(Long addressId, String userId); // Ensures user owns the address before "deleting"
 }
