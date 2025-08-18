@@ -90,5 +90,5 @@ java -jar target/user-service-0.0.1-SNAPSHOT.jar
 ```
 ## 6. API Documentation
 
-- **Postman:** [Harvest Hub](https://xd5555-3122.postman.co/workspace/Harvest-Hub-APIs~5f3f7fce-fdae-4513-b4fd-9aba126444b7/collection/36340838-22e3c058-0b82-40f3-95e2-26bb3a54add2?action=share&source=copy-link&creator=36340838)
+- **Postman:** [Harvest Hub](https://www.postman.com/xd5555-3122/workspace/harvest-hub-apis)
 
