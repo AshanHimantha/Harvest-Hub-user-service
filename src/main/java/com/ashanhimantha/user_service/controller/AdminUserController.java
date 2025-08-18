@@ -5,8 +5,11 @@ import com.ashanhimantha.user_service.dto.request.UpdateUserRoleRequest;
 import com.ashanhimantha.user_service.dto.request.UpdateUserStatusRequest;
 import com.ashanhimantha.user_service.dto.response.ApiResponse;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
+import com.ashanhimantha.user_service.service.CognitoUserService;
 import com.ashanhimantha.user_service.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,16 +36,13 @@ public class AdminUserController {
      * Get all users with pagination (Admin only)
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int limit) {
-        try {
-            List<CognitoUserResponse> users = userService.getAllCognitoUsers(page, limit);
-            return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", users));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to retrieve users: " + e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<CognitoUserService.PaginatedUserResponse>> getAllUsers(
+            @RequestParam(defaultValue = "20") @Min(1) @Max(60) int limit,
+            @RequestParam(required = false) String nextToken) {
+
+        // This now returns the paginated response object
+        CognitoUserService.PaginatedUserResponse paginatedResponse = userService.getAllCognitoUsers(limit, nextToken);
+        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", paginatedResponse));
     }
 
     /**
@@ -63,13 +63,9 @@ public class AdminUserController {
      */
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> searchUsersByEmail(@RequestParam String email) {
-        try {
-            List<CognitoUserResponse> users = userService.searchUsersByEmail(email);
-            return ResponseEntity.ok(ApiResponse.success("Search completed successfully", users));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Search failed: " + e.getMessage()));
-        }
+        // The service method should now be called "searchCognitoUsersByEmail" to match the interface
+        List<CognitoUserResponse> users = userService.searchCognitoUsersByEmail(email);
+        return ResponseEntity.ok(ApiResponse.success("Search completed successfully", users));
     }
 
     /**

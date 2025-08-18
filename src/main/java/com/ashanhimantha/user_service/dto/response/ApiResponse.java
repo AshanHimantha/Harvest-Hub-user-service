@@ -1,30 +1,30 @@
 package com.ashanhimantha.user_service.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ApiResponse<T> {
-    private boolean success;
+
+    private String status;
     private String message;
-    private T data;
-    private String timestamp;
+    private T data; // The generic data payload
 
-    public ApiResponse(boolean success, String message, T data) {
-        this.success = success;
-        this.message = message;
-        this.data = data;
-        this.timestamp = java.time.Instant.now().toString();
-    }
-
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "Success", data);
-    }
 
     public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(true, message, data);
+        return new ApiResponse<>("SUCCESS", message, data);
     }
 
+    // Your existing error method
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null);
+        return new ApiResponse<>("ERROR", message, null);
+    }
+
+
+    public static <T> ApiResponse<T> error(String message, T data) {
+        return new ApiResponse<>("ERROR", message, data);
     }
 }

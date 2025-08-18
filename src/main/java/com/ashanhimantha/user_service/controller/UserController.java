@@ -156,4 +156,17 @@ public class UserController {
         }
     }
 
+    @DeleteMapping("/me/addresses/{addressId}")
+    public ResponseEntity<ApiResponse<?>> deleteMyAddress(@AuthenticationPrincipal Jwt jwt, @PathVariable Long addressId) {
+        String userId = jwt.getSubject();
+        boolean deleted = userService.deleteUserAddress(userId, addressId);
+
+        if (deleted) {
+            return ResponseEntity.ok(ApiResponse.success("Address deleted successfully", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Address not found or you do not have permission to delete it."));
+        }
+    }
+
 }
