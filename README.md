@@ -36,7 +36,7 @@ This service is built with **Java 17**, **Spring Boot 3.5+**, and **Maven**.
 - **Identity Provider:** [AWS Cognito](https://aws.amazon.com/cognito/)
 - **Database:** [PostgreSQL](https://www.postgresql.org/)
 - **Data Access:** [Spring Data JPA / Hibernate](https://spring.io/projects/spring-data-jpa)
-- **API Documentation:** [SpringDoc OpenAPI (Swagger UI)](https://springdoc.org/)
+- **API Documentation:** [(Postman)](https://www.postman.com/)
 
 ## 4. Setup and Configuration
 
@@ -91,4 +91,8 @@ java -jar target/user-service-0.0.1-SNAPSHOT.jar
 ## 6. API Documentation
 
 - **Postman:** [Harvest Hub](https://www.postman.com/xd5555-3122/workspace/harvest-hub-apis)
+
+## 7. AWS Configs
+
+- **AWS:** [Documentation](https://github.com/AshanHimantha/Harvest-Hub-user-service/blob/master/AWS_Configs.md)
 
