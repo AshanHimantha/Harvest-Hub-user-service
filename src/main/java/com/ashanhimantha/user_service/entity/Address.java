@@ -19,8 +19,6 @@ public class Address {
     @Column(name = "active", nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
 
-    // This is the crucial change.
-    // We store the Cognito User ID directly.
     @Column(name = "user_id", nullable = false)
     private String userId;
 

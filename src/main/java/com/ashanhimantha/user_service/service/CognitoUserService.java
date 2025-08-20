@@ -2,6 +2,8 @@ package com.ashanhimantha.user_service.service;
 
 import com.ashanhimantha.user_service.dto.request.CreateAdminUserRequest;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.regions.Region;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CognitoUserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CognitoUserService.class);
 
     private final CognitoIdentityProviderClient cognitoClient;
     private final String userPoolId;
@@ -164,11 +168,28 @@ public class CognitoUserService {
 
     private List<String> getGroupsForUser(String username) {
         try {
-            AdminListGroupsForUserRequest request = AdminListGroupsForUserRequest.builder().userPoolId(userPoolId).username(username).build();
+            AdminListGroupsForUserRequest request = AdminListGroupsForUserRequest.builder()
+                    .userPoolId(userPoolId)
+                    .username(username)
+                    .build();
+
             AdminListGroupsForUserResponse response = cognitoClient.adminListGroupsForUser(request);
-            return response.groups().stream().map(GroupType::groupName).collect(Collectors.toList());
-        } catch (Exception e) {
+            return response.groups().stream()
+                    .map(GroupType::groupName)
+                    .collect(Collectors.toList());
+
+        } catch (UserNotFoundException e) {
+            // User doesn't exist, return empty list
+            logger.debug("User {} not found when fetching groups", username);
             return List.of();
+        } catch (CognitoIdentityProviderException e) {
+            // Log the error but don't fail silently - this could indicate permission issues
+            logger.error("Failed to fetch groups for user {}: {}", username, e.awsErrorDetails().errorMessage());
+            throw new RuntimeException("Failed to fetch user groups from Cognito", e);
+        } catch (Exception e) {
+            // For any other unexpected errors
+            logger.error("Unexpected error fetching groups for user {}: {}", username, e.getMessage());
+            throw new RuntimeException("Unexpected error fetching user groups", e);
         }
     }
 
