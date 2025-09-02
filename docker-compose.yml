@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  user-service:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      # Database configuration
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/user_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+      
+      # JPA configuration
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=true
+      
+      # AWS configuration (provide your own values)
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=https://cognito-idp.your-region.amazonaws.com/your-user-pool-id/.well-known/jwks.json
+      - AWS_COGNITO_USERPOOLID=your-user-pool-id
+      - AWS_REGION=your-region
+    depends_on:
+      - db
+    networks:
+      - harvest-hub-network
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=user_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - harvest-hub-network
+
+volumes:
+  postgres_data:
+
+networks:
+  harvest-hub-network:
+    driver: bridge

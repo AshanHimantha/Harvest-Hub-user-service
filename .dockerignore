@@ -1,0 +1,51 @@
+# Ignore Git files
+.git
+.gitignore
+.gitattributes
+
+# Ignore documentation
+README.md
+*.md
+
+# Ignore IDE files
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore build artifacts except for the final JAR
+target/*.jar.original
+target/classes/
+target/test-classes/
+target/maven-archiver/
+target/maven-status/
+target/generated-sources/
+target/generated-test-sources/
+
+# Ignore test files and coverage reports
+coverage/
+*.log
+
+# Ignore temporary files
+*.tmp
+*.temp
+
+# Ignore Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Ignore AWS and config files that shouldn't be in the image
+AWS_Configs.md
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+
+# Ignore Maven wrapper (will be copied explicitly)
+# .mvn/
+# mvnw
+# mvnw.cmd
