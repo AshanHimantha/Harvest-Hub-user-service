@@ -88,6 +88,28 @@ mvn clean install
 # Run the application
 java -jar target/user-service-0.0.1-SNAPSHOT.jar
 ```
+
+## 5. Docker Support
+
+This service includes complete Docker support for easy deployment and development:
+
+### Quick Start with Docker Compose
+```bash
+# Start the service with PostgreSQL database
+docker compose up --build
+```
+
+### Build and Run with Docker
+```bash
+# Build the application and Docker image
+./docker-helper.sh build
+
+# Run with Docker Compose (recommended)
+./docker-helper.sh compose-up
+```
+
+For detailed Docker instructions, see [README-Docker.md](README-Docker.md).
+
 ## 6. API Documentation
 
 - **Postman:** [Harvest Hub](https://www.postman.com/xd5555-3122/workspace/harvest-hub-apis)
