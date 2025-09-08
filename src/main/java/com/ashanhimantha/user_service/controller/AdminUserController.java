@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/admin/users")
+@RequestMapping("/api/v1/users/admin")
 @CrossOrigin(origins = "*")
 @PreAuthorize("hasAuthority('SuperAdmins')")
-public class AdminUserController {
+public class AdminUserController extends AbstractController {
 
     private final UserService userService;
 
@@ -40,9 +40,8 @@ public class AdminUserController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(60) int limit,
             @RequestParam(required = false) String nextToken) {
 
-        // This now returns the paginated response object
         CognitoUserService.PaginatedUserResponse paginatedResponse = userService.getAllCognitoUsers(limit, nextToken);
-        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", paginatedResponse));
+        return success("Users retrieved successfully", paginatedResponse);
     }
 
     /**
@@ -52,9 +51,9 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<CognitoUserResponse>> getUserById(@PathVariable String userId) {
         try {
             CognitoUserResponse user = userService.getCognitoUserProfile(userId);
-            return ResponseEntity.ok(ApiResponse.success("User retrieved successfully", user));
+            return success("User retrieved successfully", user);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return error("User not found", HttpStatus.NOT_FOUND);
         }
     }
 
@@ -63,9 +62,8 @@ public class AdminUserController {
      */
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> searchUsersByEmail(@RequestParam String email) {
-        // The service method should now be called "searchCognitoUsersByEmail" to match the interface
         List<CognitoUserResponse> users = userService.searchCognitoUsersByEmail(email);
-        return ResponseEntity.ok(ApiResponse.success("Search completed successfully", users));
+        return success("Search completed successfully", users);
     }
 
     /**
@@ -75,40 +73,37 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<CognitoUserResponse>> createAdminUser(@Valid @RequestBody CreateAdminUserRequest request) {
         try {
             CognitoUserResponse newUser = userService.createCognitoAdminUser(request);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("User created successfully", newUser));
+            return created("User created successfully", newUser);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
+            return error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
-    @PutMapping("/{username}/role")
-    public ResponseEntity<ApiResponse<?>> updateUserRoles(@PathVariable String username, @Valid @RequestBody UpdateUserRoleRequest request) {
+    @PutMapping("/{userId}/role")
+    public ResponseEntity<ApiResponse<Void>> updateUserRoles(@PathVariable String userId, @Valid @RequestBody UpdateUserRoleRequest request) {
         try {
             // Convert the list of enums to a list of strings
             List<String> roleNames = request.getRoles().stream()
                     .map(Enum::name)
                     .collect(Collectors.toList());
 
-            userService.syncCognitoUserRoles(username, roleNames);
-            return ResponseEntity.ok(ApiResponse.success("User roles updated successfully", null));
+            userService.syncCognitoUserRoles(userId, roleNames);
+            return success("User roles updated successfully", null);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
-    @PutMapping("/{username}/status")
-    public ResponseEntity<ApiResponse<?>> updateUserStatus(@PathVariable String username, @Valid @RequestBody UpdateUserStatusRequest request) {
+    @PutMapping("/{userId}/status")
+    public ResponseEntity<ApiResponse<Void>> updateUserStatus(@PathVariable String userId, @Valid @RequestBody UpdateUserStatusRequest request) {
         try {
-            userService.updateCognitoUserStatus(username, request.getEnabled());
+            userService.updateCognitoUserStatus(userId, request.getEnabled());
             String status = request.getEnabled() ? "enabled" : "disabled";
-            return ResponseEntity.ok(ApiResponse.success("User status successfully updated to " + status, null));
+            return success("User status successfully updated to " + status, null);
         } catch (UnsupportedOperationException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error(e.getMessage()));
+            return error(e.getMessage(), HttpStatus.FORBIDDEN);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }

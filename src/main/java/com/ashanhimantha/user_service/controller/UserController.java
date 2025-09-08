@@ -1,6 +1,5 @@
 package com.ashanhimantha.user_service.controller;
 
-
 import com.ashanhimantha.user_service.dto.request.AddressRequest;
 import com.ashanhimantha.user_service.dto.response.ApiResponse;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
@@ -20,7 +19,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/users")
 @CrossOrigin(origins = "*")
-public class UserController {
+public class UserController extends AbstractController {
 
     private final UserService userService;
 
@@ -34,14 +33,13 @@ public class UserController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<Object>> getUsers() {
-        ApiResponse<Object> response = ApiResponse.error("Internal server error: No static resource api/v1/users.");
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        return error("Internal server error: No static resource api/v1/users.", HttpStatus.NOT_FOUND);
     }
 
     /**
      * Get current user profile from Cognito
      */
-    @GetMapping("/me")
+    @GetMapping("/currentUser")
     public ResponseEntity<?> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
@@ -100,38 +98,34 @@ public class UserController {
         }
     }
 
-
-    @PostMapping("/me/addresses")
+    @PostMapping("/currentUser/addresses")
     public ResponseEntity<ApiResponse<Address>> addMyAddress(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AddressRequest addressRequest) {
         String userId = jwt.getSubject(); // Get the user ID from the token
 
         try {
             Address savedAddress = userService.addAddressForUser(userId, addressRequest);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Address added successfully", savedAddress));
+            return created("Address added successfully", savedAddress);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to add address: " + e.getMessage()));
+            return error("Failed to add address: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
      * Get all addresses for the current user.
      */
-    @GetMapping("/me/addresses")
+    @GetMapping("/currentUser/addresses")
     public ResponseEntity<ApiResponse<List<Address>>> getMyAddresses(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject(); // Get the user ID from the token
 
         try {
             List<Address> addresses = userService.getAddressesForUser(userId);
-            return ResponseEntity.ok(ApiResponse.success("Addresses retrieved successfully", addresses));
+            return success("Addresses retrieved successfully", addresses);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to retrieve addresses: " + e.getMessage()));
+            return error("Failed to retrieve addresses: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PutMapping("/me/addresses/{addressId}")
+    @PutMapping("/currentUser/addresses/{addressId}")
     public ResponseEntity<ApiResponse<Address>> updateMyAddress(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long addressId,
@@ -144,28 +138,25 @@ public class UserController {
 
             // Check if the address was found and updated
             if (updatedAddressOptional.isPresent()) {
-                return ResponseEntity.ok(ApiResponse.success("Address updated successfully", updatedAddressOptional.get()));
+                return success("Address updated successfully", updatedAddressOptional.get());
             } else {
                 // If the Optional is empty, it means the address was not found or the user doesn't own it.
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Address not found or you do not have permission to update it."));
+                return error("Address not found or you do not have permission to update it.", HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to update address: " + e.getMessage()));
+            return error("Failed to update address: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @DeleteMapping("/me/addresses/{addressId}")
-    public ResponseEntity<ApiResponse<?>> deleteMyAddress(@AuthenticationPrincipal Jwt jwt, @PathVariable Long addressId) {
+    @DeleteMapping("/currentUser/addresses/{addressId}")
+    public ResponseEntity<ApiResponse<Void>> deleteMyAddress(@AuthenticationPrincipal Jwt jwt, @PathVariable Long addressId) {
         String userId = jwt.getSubject();
         boolean deleted = userService.deleteUserAddress(userId, addressId);
 
         if (deleted) {
-            return ResponseEntity.ok(ApiResponse.success("Address deleted successfully", null));
+            return success("Address deleted successfully", null);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Address not found or you do not have permission to delete it."));
+            return error("Address not found or you do not have permission to delete it.", HttpStatus.NOT_FOUND);
         }
     }
 

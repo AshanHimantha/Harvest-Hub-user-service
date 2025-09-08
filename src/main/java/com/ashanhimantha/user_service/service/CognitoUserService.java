@@ -259,4 +259,30 @@ public class CognitoUserService {
         }
     }
 
+    /**
+     * Get username by user ID (sub attribute)
+     */
+    public String getUsernameByUserId(String userId) {
+        try {
+            // Search for user by sub attribute (user ID)
+            String filter = "sub = \"" + userId + "\"";
+
+            ListUsersRequest request = ListUsersRequest.builder()
+                    .userPoolId(userPoolId)
+                    .filter(filter)
+                    .build();
+
+            ListUsersResponse response = cognitoClient.listUsers(request);
+
+            if (response.users().isEmpty()) {
+                throw new RuntimeException("User not found with ID: " + userId);
+            }
+
+            return response.users().get(0).username();
+
+        } catch (CognitoIdentityProviderException e) {
+            throw new RuntimeException("Failed to find user by ID from Cognito: " + e.getMessage(), e);
+        }
+    }
+
 }
