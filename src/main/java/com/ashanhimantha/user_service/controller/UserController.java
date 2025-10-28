@@ -1,20 +1,28 @@
 package com.ashanhimantha.user_service.controller;
 
 import com.ashanhimantha.user_service.dto.request.AddressRequest;
+import com.ashanhimantha.user_service.dto.request.CreateAdminUserRequest;
+import com.ashanhimantha.user_service.dto.request.UpdateUserRoleRequest;
+import com.ashanhimantha.user_service.dto.request.UpdateUserStatusRequest;
 import com.ashanhimantha.user_service.dto.response.ApiResponse;
 import com.ashanhimantha.user_service.dto.response.CognitoUserResponse;
 import com.ashanhimantha.user_service.entity.Address;
+import com.ashanhimantha.user_service.service.CognitoUserService;
 import com.ashanhimantha.user_service.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -28,13 +36,7 @@ public class UserController extends AbstractController {
         this.userService = userService;
     }
 
-    /**
-     * Base users endpoint - returns 404 with specific error message
-     */
-    @GetMapping
-    public ResponseEntity<ApiResponse<Object>> getUsers() {
-        return error("Internal server error: No static resource api/v1/users.", HttpStatus.NOT_FOUND);
-    }
+    // ==================== Public/User Endpoints ====================
 
     /**
      * Get current user profile from Cognito
@@ -157,6 +159,102 @@ public class UserController extends AbstractController {
             return success("Address deleted successfully", null);
         } else {
             return error("Address not found or you do not have permission to delete it.", HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // ==================== Admin Endpoints ====================
+
+    /**
+     * Get all users with pagination (Admin only)
+     */
+    @GetMapping
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<CognitoUserService.PaginatedUserResponse>> getAllUsers(
+            @RequestParam(defaultValue = "20") @Min(1) @Max(60) int limit,
+            @RequestParam(required = false) String nextToken) {
+
+        CognitoUserService.PaginatedUserResponse paginatedResponse = userService.getAllCognitoUsers(limit, nextToken);
+        return success("Users retrieved successfully", paginatedResponse);
+    }
+
+    /**
+     * Search users by multiple criteria (Admin only)
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> searchUsers(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String role) {
+
+        List<CognitoUserResponse> users = userService.searchCognitoUsers(email, firstName, lastName, username, status, role);
+        return success("Search completed successfully", users);
+    }
+
+    /**
+     * Get user by ID (Admin only)
+     */
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<CognitoUserResponse>> getUserById(@PathVariable String userId) {
+        try {
+            CognitoUserResponse user = userService.getCognitoUserProfile(userId);
+            return success("User retrieved successfully", user);
+        } catch (Exception e) {
+            return error("User not found", HttpStatus.NOT_FOUND);
+        }
+    }
+
+    /**
+     * Create a new administrative user (Supplier or DataSteward)
+     */
+    @PostMapping
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<CognitoUserResponse>> createAdminUser(@Valid @RequestBody CreateAdminUserRequest request) {
+        try {
+            CognitoUserResponse newUser = userService.createCognitoAdminUser(request);
+            return created("User created successfully", newUser);
+        } catch (RuntimeException e) {
+            return error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Update user roles (Admin only)
+     */
+    @PutMapping("/{userId}/role")
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<Void>> updateUserRoles(@PathVariable String userId, @Valid @RequestBody UpdateUserRoleRequest request) {
+        try {
+            // Convert the list of enums to a list of strings
+            List<String> roleNames = request.getRoles().stream()
+                    .map(Enum::name)
+                    .collect(Collectors.toList());
+
+            userService.syncCognitoUserRoles(userId, roleNames);
+            return success("User roles updated successfully", null);
+        } catch (RuntimeException e) {
+            return error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Update user status (Admin only)
+     */
+    @PutMapping("/{userId}/status")
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<Void>> updateUserStatus(@PathVariable String userId, @Valid @RequestBody UpdateUserStatusRequest request) {
+        try {
+            userService.updateCognitoUserStatus(userId, request.getEnabled());
+            String status = request.getEnabled() ? "enabled" : "disabled";
+            return success("User status successfully updated to " + status, null);
+        } catch (UnsupportedOperationException e) {
+            return error(e.getMessage(), HttpStatus.FORBIDDEN);
+        } catch (RuntimeException e) {
+            return error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
