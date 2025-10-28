@@ -125,4 +125,13 @@ public class UserServiceImpl extends UserService {
             throw new RuntimeException("User not found with ID: " + userId, e);
         }
     }
+
+    @Override
+    public List<CognitoUserResponse> getEmployeeUsers() {
+        // Here we define which groups are considered "employees".
+        List<String> employeeGroups = List.of("SuperAdmins", "DataStewards");
+
+        // Call the new method in our Cognito service to get the users.
+        return cognitoUserService.findUsersByGroups(employeeGroups);
+    }
 }

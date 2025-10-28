@@ -41,4 +41,6 @@ public abstract class UserService {
             throw new IllegalArgumentException("Invalid email format");
         }
     }
+
+    public abstract List<CognitoUserResponse> getEmployeeUsers();
 }

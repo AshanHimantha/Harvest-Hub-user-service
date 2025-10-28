@@ -53,57 +53,39 @@ public class UserController extends AbstractController {
             CognitoUserResponse fallbackResponse = new CognitoUserResponse();
             fallbackResponse.setId(userId);
             fallbackResponse.setUsername(userId);
-
-            // Try to get email from different possible claims
             String email = jwt.getClaimAsString("email");
             if (email == null) {
                 email = jwt.getClaimAsString("username");
             }
             fallbackResponse.setEmail(email);
-
-            String firstName = jwt.getClaimAsString("given_name");
-            String lastName = jwt.getClaimAsString("family_name");
-            fallbackResponse.setFirstName(firstName);
-            fallbackResponse.setLastName(lastName);
-
-            // Try to get phone
+            fallbackResponse.setFirstName(jwt.getClaimAsString("given_name"));
+            fallbackResponse.setLastName(jwt.getClaimAsString("family_name"));
             fallbackResponse.setPhone(jwt.getClaimAsString("phone_number"));
-
-            // Set email verified status
             Object emailVerified = jwt.getClaim("email_verified");
             if (emailVerified != null) {
                 fallbackResponse.setEmailVerified(Boolean.parseBoolean(emailVerified.toString()));
             }
-
-            // Set metadata fields from JWT if available
-            fallbackResponse.setStatus("CONFIRMED"); // Default status for authenticated users
-
-            // Try to get creation date from JWT (iat claim - issued at)
-            Long iat = jwt.getClaimAsInstant("iat") != null ? jwt.getClaimAsInstant("iat").getEpochSecond() : null;
-            if (iat != null) {
-                fallbackResponse.setCreatedDate(java.time.Instant.ofEpochSecond(iat).toString());
-                fallbackResponse.setLastModifiedDate(java.time.Instant.ofEpochSecond(iat).toString());
+            fallbackResponse.setStatus("CONFIRMED");
+            java.time.Instant iatInstant = jwt.getClaimAsInstant("iat");
+            if (iatInstant != null) {
+                fallbackResponse.setCreatedDate(iatInstant.toString());
+                fallbackResponse.setLastModifiedDate(iatInstant.toString());
             }
-
-            // Try to get user groups from JWT claims
             Object groupsClaim = jwt.getClaim("cognito:groups");
             if (groupsClaim instanceof List<?>) {
                 @SuppressWarnings("unchecked")
                 List<String> userGroups = (List<String>) groupsClaim;
                 fallbackResponse.setUserGroups(userGroups);
             } else {
-                // Set empty list as default if no groups found
                 fallbackResponse.setUserGroups(List.of());
             }
-
             return ResponseEntity.ok(fallbackResponse);
         }
     }
 
     @PostMapping("/currentUser/addresses")
     public ResponseEntity<ApiResponse<Address>> addMyAddress(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AddressRequest addressRequest) {
-        String userId = jwt.getSubject(); // Get the user ID from the token
-
+        String userId = jwt.getSubject();
         try {
             Address savedAddress = userService.addAddressForUser(userId, addressRequest);
             return created("Address added successfully", savedAddress);
@@ -112,13 +94,9 @@ public class UserController extends AbstractController {
         }
     }
 
-    /**
-     * Get all addresses for the current user.
-     */
     @GetMapping("/currentUser/addresses")
     public ResponseEntity<ApiResponse<List<Address>>> getMyAddresses(@AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject(); // Get the user ID from the token
-
+        String userId = jwt.getSubject();
         try {
             List<Address> addresses = userService.getAddressesForUser(userId);
             return success("Addresses retrieved successfully", addresses);
@@ -132,19 +110,11 @@ public class UserController extends AbstractController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long addressId,
             @Valid @RequestBody AddressRequest addressRequest) {
-
-        String userId = jwt.getSubject(); // Get the user ID from the token
-
+        String userId = jwt.getSubject();
         try {
             Optional<Address> updatedAddressOptional = userService.updateUserAddress(userId, addressId, addressRequest);
-
-            // Check if the address was found and updated
-            if (updatedAddressOptional.isPresent()) {
-                return success("Address updated successfully", updatedAddressOptional.get());
-            } else {
-                // If the Optional is empty, it means the address was not found or the user doesn't own it.
-                return error("Address not found or you do not have permission to update it.", HttpStatus.NOT_FOUND);
-            }
+            return updatedAddressOptional.map(address -> success("Address updated successfully", address))
+                    .orElseGet(() -> error("Address not found or you do not have permission to update it.", HttpStatus.NOT_FOUND));
         } catch (Exception e) {
             return error("Failed to update address: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -154,7 +124,6 @@ public class UserController extends AbstractController {
     public ResponseEntity<ApiResponse<Void>> deleteMyAddress(@AuthenticationPrincipal Jwt jwt, @PathVariable Long addressId) {
         String userId = jwt.getSubject();
         boolean deleted = userService.deleteUserAddress(userId, addressId);
-
         if (deleted) {
             return success("Address deleted successfully", null);
         } else {
@@ -164,21 +133,20 @@ public class UserController extends AbstractController {
 
     // ==================== Admin Endpoints ====================
 
-    /**
-     * Get all users with pagination (Admin only)
-     */
     @GetMapping
     @PreAuthorize("hasAuthority('SuperAdmins')")
     public ResponseEntity<ApiResponse<CognitoUserService.PaginatedUserResponse>> getAllUsers(
             @RequestParam(defaultValue = "20") @Min(1) @Max(60) int limit,
             @RequestParam(required = false) String nextToken) {
-
         CognitoUserService.PaginatedUserResponse paginatedResponse = userService.getAllCognitoUsers(limit, nextToken);
         return success("Users retrieved successfully", paginatedResponse);
     }
 
     /**
-     * Search users by multiple criteria (Admin only)
+     * Search users by multiple criteria (Admin only).
+     * This endpoint is called with a URL like:
+     * /api/v1/users/search?role=Suppliers
+     * /api/v1/users/search?email=test@example.com
      */
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('SuperAdmins')")
@@ -190,13 +158,24 @@ public class UserController extends AbstractController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String role) {
 
+        // This logging is very helpful for debugging to see exactly what the server received.
+        System.out.println(
+                String.format("--- SEARCHING USERS --- Received params: email=[%s], firstName=[%s], lastName=[%s], username=[%s], status=[%s], role=[%s]",
+                        email, firstName, lastName, username, status, role)
+        );
+
+        // If only the 'email' parameter is provided, use a more efficient Cognito query.
+        if (email != null && firstName == null && lastName == null && username == null && status == null && role == null) {
+            List<CognitoUserResponse> users = userService.searchCognitoUsersByEmail(email);
+            return success("Search completed successfully", users);
+        }
+
+        // For any other combination of parameters, use the general-purpose search method
+        // which fetches all users and filters them in the application.
         List<CognitoUserResponse> users = userService.searchCognitoUsers(email, firstName, lastName, username, status, role);
         return success("Search completed successfully", users);
     }
 
-    /**
-     * Get user by ID (Admin only)
-     */
     @GetMapping("/{userId}")
     @PreAuthorize("hasAuthority('SuperAdmins')")
     public ResponseEntity<ApiResponse<CognitoUserResponse>> getUserById(@PathVariable String userId) {
@@ -208,9 +187,6 @@ public class UserController extends AbstractController {
         }
     }
 
-    /**
-     * Create a new administrative user (Supplier or DataSteward)
-     */
     @PostMapping
     @PreAuthorize("hasAuthority('SuperAdmins')")
     public ResponseEntity<ApiResponse<CognitoUserResponse>> createAdminUser(@Valid @RequestBody CreateAdminUserRequest request) {
@@ -222,18 +198,13 @@ public class UserController extends AbstractController {
         }
     }
 
-    /**
-     * Update user roles (Admin only)
-     */
     @PutMapping("/{userId}/role")
     @PreAuthorize("hasAuthority('SuperAdmins')")
     public ResponseEntity<ApiResponse<Void>> updateUserRoles(@PathVariable String userId, @Valid @RequestBody UpdateUserRoleRequest request) {
         try {
-            // Convert the list of enums to a list of strings
             List<String> roleNames = request.getRoles().stream()
                     .map(Enum::name)
                     .collect(Collectors.toList());
-
             userService.syncCognitoUserRoles(userId, roleNames);
             return success("User roles updated successfully", null);
         } catch (RuntimeException e) {
@@ -241,9 +212,6 @@ public class UserController extends AbstractController {
         }
     }
 
-    /**
-     * Update user status (Admin only)
-     */
     @PutMapping("/{userId}/status")
     @PreAuthorize("hasAuthority('SuperAdmins')")
     public ResponseEntity<ApiResponse<Void>> updateUserStatus(@PathVariable String userId, @Valid @RequestBody UpdateUserStatusRequest request) {
@@ -258,4 +226,14 @@ public class UserController extends AbstractController {
         }
     }
 
+    @GetMapping("/employees")
+    @PreAuthorize("hasAuthority('SuperAdmins')")
+    public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> getEmployeeUsers() {
+        try {
+            List<CognitoUserResponse> employees = userService.getEmployeeUsers();
+            return success("Employee users retrieved successfully", employees);
+        } catch (Exception e) {
+            return error("Failed to retrieve employee users: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
