@@ -111,6 +111,11 @@ public class UserServiceImpl extends UserService {
         return cognitoUserService.searchUsersByEmail(email);
     }
 
+    @Override
+    public List<CognitoUserResponse> searchCognitoUsers(String email, String firstName, String lastName, String username, String status, String role) {
+        return cognitoUserService.searchUsers(email, firstName, lastName, username, status, role);
+    }
+
     private String getUsernameFromUserId(String userId) {
         // Get user by ID and extract username
         // Since we need to find the user by their sub (user ID), we'll use the existing search functionality

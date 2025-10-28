@@ -18,6 +18,7 @@ public abstract class UserService {
     public abstract void syncCognitoUserRoles(String userId, List<String> newRoles);
     public abstract void updateCognitoUserStatus(String userId, boolean enable);
     public abstract List<CognitoUserResponse> searchCognitoUsersByEmail(String email);
+    public abstract List<CognitoUserResponse> searchCognitoUsers(String email, String firstName, String lastName, String username, String status, String role);
 
     // === Local Address Management ===
     public abstract Address addAddressForUser(String userId, AddressRequest addressRequest);

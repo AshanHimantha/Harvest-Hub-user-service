@@ -58,11 +58,18 @@ public class AdminUserController extends AbstractController {
     }
 
     /**
-     * Search users by email (Admin only)
+     * Search users by multiple criteria (Admin only)
      */
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> searchUsersByEmail(@RequestParam String email) {
-        List<CognitoUserResponse> users = userService.searchCognitoUsersByEmail(email);
+    public ResponseEntity<ApiResponse<List<CognitoUserResponse>>> searchUsers(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String role) {
+
+        List<CognitoUserResponse> users = userService.searchCognitoUsers(email, firstName, lastName, username, status, role);
         return success("Search completed successfully", users);
     }
 

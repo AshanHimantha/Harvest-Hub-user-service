@@ -260,6 +260,90 @@ public class CognitoUserService {
     }
 
     /**
+     * Search users by multiple criteria
+     * Since Cognito has limited filter capabilities, we fetch all users and filter in memory
+     */
+    public List<CognitoUserResponse> searchUsers(String email, String firstName, String lastName, String username, String status, String role) {
+        try {
+            // Fetch all users (we'll do pagination to get all)
+            List<CognitoUserResponse> allUsers = getAllUsers();
+
+            // Apply filters
+            return allUsers.stream()
+                    .filter(user -> {
+                        if (email != null && !email.isEmpty()) {
+                            if (user.getEmail() == null || !user.getEmail().toLowerCase().contains(email.toLowerCase())) {
+                                return false;
+                            }
+                        }
+                        if (firstName != null && !firstName.isEmpty()) {
+                            if (user.getFirstName() == null || !user.getFirstName().toLowerCase().contains(firstName.toLowerCase())) {
+                                return false;
+                            }
+                        }
+                        if (lastName != null && !lastName.isEmpty()) {
+                            if (user.getLastName() == null || !user.getLastName().toLowerCase().contains(lastName.toLowerCase())) {
+                                return false;
+                            }
+                        }
+                        if (username != null && !username.isEmpty()) {
+                            if (user.getUsername() == null || !user.getUsername().toLowerCase().contains(username.toLowerCase())) {
+                                return false;
+                            }
+                        }
+                        if (status != null && !status.isEmpty()) {
+                            if (user.getStatus() == null || !user.getStatus().equalsIgnoreCase(status)) {
+                                return false;
+                            }
+                        }
+                        if (role != null && !role.isEmpty()) {
+                            if (user.getUserGroups() == null || !user.getUserGroups().contains(role)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toList());
+
+        } catch (CognitoIdentityProviderException e) {
+            throw new RuntimeException("Failed to search users from Cognito: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Helper method to fetch all users by paginating through all results
+     */
+    private List<CognitoUserResponse> getAllUsers() {
+        List<CognitoUserResponse> allUsers = new java.util.ArrayList<>();
+        String paginationToken = null;
+
+        do {
+            ListUsersRequest.Builder requestBuilder = ListUsersRequest.builder()
+                    .userPoolId(userPoolId)
+                    .limit(60); // Max limit per request
+
+            if (paginationToken != null && !paginationToken.isEmpty()) {
+                requestBuilder.paginationToken(paginationToken);
+            }
+
+            ListUsersResponse response = cognitoClient.listUsers(requestBuilder.build());
+
+            List<CognitoUserResponse> users = response.users().stream()
+                    .map(userType -> {
+                        List<String> groups = getGroupsForUser(userType.username());
+                        return mapToCognitoUserResponse(userType, groups);
+                    })
+                    .collect(Collectors.toList());
+
+            allUsers.addAll(users);
+            paginationToken = response.paginationToken();
+
+        } while (paginationToken != null && !paginationToken.isEmpty());
+
+        return allUsers;
+    }
+
+    /**
      * Get username by user ID (sub attribute)
      */
     public String getUsernameByUserId(String userId) {
@@ -286,3 +370,4 @@ public class CognitoUserService {
     }
 
 }
+
